@@ -215,6 +215,8 @@ onMounted(async () => {
     <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
   </div>
 
+  <div v-if="!loading" class="count-label">訂單數：{{ filteredOrders.length }}</div>
+
   <table class="orders-table">
     <thead>
       <tr>
@@ -418,6 +420,12 @@ onMounted(async () => {
   cursor: not-allowed;
   border-color: #444;
   color: #444;
+}
+
+.count-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
 }
 
 .orders-table {
