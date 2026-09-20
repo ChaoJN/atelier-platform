@@ -1,0 +1,11 @@
+name = "atelier-api"
+main = "src/index.ts"
+compatibility_date = "2025-07-18"
+
+# R2 bucket 綁定（商品圖片、封面圖片）——沿用舊版 backend 已在用的 bucket，不建新的
+[[r2_buckets]]
+binding = "ASSETS_BUCKET"
+bucket_name = "atelier-platform-images"
+
+# 本地開發用機密變數放在 .dev.vars（不進版控），正式環境用
+# `wrangler secret put <NAME>` 個別設定
