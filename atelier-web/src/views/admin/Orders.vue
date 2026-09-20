@@ -110,20 +110,27 @@ function csvCell(value: string) {
   return `"${escapedForCsv}"`
 }
 
+// 商品明細要在 cell 內換行，不能用 ="..." 公式包——實測發現 Excel/Sheets 算公式時會把
+// 裡面的換行符吃掉，變成擠在同一行。這欄本來就是純文字（商品名稱開頭），沒有被誤判成數字的風險，
+// 單純用雙引號包起來就好，CSV 格式本身就支援 quoted 欄位內含換行
+function csvCellPlain(value: string) {
+  return `"${value.replace(/"/g, '""')}"`
+}
+
 function exportCsv() {
   const headers = ['會員名稱', '會員信箱', '訂單編號', '商品明細', '收件人', '收件人電話', '寄送資訊', '備註']
   const rows = filteredOrders.value.map((o) => [
-    o.member_name ?? '',
-    o.member_email ?? '',
-    o.order_no,
-    orderItemsCell(o.order_items),
-    o.recipient_name ?? '',
-    o.recipient_phone ?? '',
-    deliveryDetail(o),
-    o.remark ?? '',
+    csvCell(o.member_name ?? ''),
+    csvCell(o.member_email ?? ''),
+    csvCell(o.order_no),
+    csvCellPlain(orderItemsCell(o.order_items)),
+    csvCell(o.recipient_name ?? ''),
+    csvCell(o.recipient_phone ?? ''),
+    csvCell(deliveryDetail(o)),
+    csvCell(o.remark ?? ''),
   ])
 
-  const csvText = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
+  const csvText = [headers.map(csvCell), ...rows].map((row) => row.join(',')).join('\r\n')
   const BOM = '\uFEFF' // 加 BOM，Excel 開啟時中文欄位才不會變亂碼
   const blob = new Blob([BOM + csvText], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
