@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminAuthStore } from '@/stores/adminAuth'
+import { useModal } from '@/composables/useModal'
 import AdminAlert from '@/components/common/AdminAlert.vue'
 import AdminConfirmModal from '@/components/common/AdminConfirmModal.vue'
 
@@ -9,6 +10,7 @@ import AdminConfirmModal from '@/components/common/AdminConfirmModal.vue'
 const router = useRouter()
 const route = useRoute()
 const admin = useAdminAuthStore()
+const { confirm } = useModal()
 
 const navItems = [
   { label: 'HOME', path: '/admin/dashboard' },
@@ -26,6 +28,8 @@ function isActive(path: string) {
 }
 
 async function logout() {
+  const ok = await confirm('確定要登出嗎？', { confirmText: '確認登出' })
+  if (!ok) return
   admin.logout()
   router.push('/admin/login')
 }
