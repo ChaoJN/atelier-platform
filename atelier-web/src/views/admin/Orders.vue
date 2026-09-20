@@ -94,6 +94,48 @@ function toggleDetail(id: number) {
   expandedId.value = expandedId.value === id ? null : id
 }
 
+// ── 匯出 CSV ──
+function orderItemsCell(items: AdminOrder['order_items']) {
+  return (items ?? [])
+    .map((item) => `${item.productName} (${item.color ?? '-'} / ${item.size ?? '-'}) x ${item.quantity}`)
+    .join('\n')
+}
+
+// 用 ="..." 公式包一層：Excel／Google Sheets 開啟 CSV 時都會固定當純文字讀，
+// 電話號碼開頭的 0、店號等數字不會被自動轉型跑掉
+function csvCell(value: string) {
+  const escapedForFormula = value.replace(/"/g, '""')
+  const formula = `="${escapedForFormula}"`
+  const escapedForCsv = formula.replace(/"/g, '""')
+  return `"${escapedForCsv}"`
+}
+
+function exportCsv() {
+  const headers = ['會員名稱', '會員信箱', '訂單編號', '商品明細', '收件人', '收件人電話', '寄送資訊', '備註']
+  const rows = filteredOrders.value.map((o) => [
+    o.member_name ?? '',
+    o.member_email ?? '',
+    o.order_no,
+    orderItemsCell(o.order_items),
+    o.recipient_name ?? '',
+    o.recipient_phone ?? '',
+    deliveryDetail(o),
+    o.remark ?? '',
+  ])
+
+  const csvText = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
+  const BOM = '\uFEFF' // 加 BOM，Excel 開啟時中文欄位才不會變亂碼
+  const blob = new Blob([BOM + csvText], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `訂單出貨清單_${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 function onImgError(e: Event) {
   ;(e.target as HTMLImageElement).src = BLANK
 }
@@ -163,6 +205,7 @@ onMounted(async () => {
     >
       {{ opt.label }}
     </button>
+    <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
   </div>
 
   <table class="orders-table">
@@ -344,6 +387,30 @@ onMounted(async () => {
 }
 .filter-chip.selected {
   background: #222;
+}
+
+.export-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  border: 1px solid #fff;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  transition: background-color 0.2s, color 0.2s;
+}
+.export-btn:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+}
+.export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #444;
+  color: #444;
 }
 
 .orders-table {
