@@ -98,7 +98,7 @@ onMounted(loadMembers)
     <input v-model="keyword" type="text" placeholder="搜尋姓名、Email 或電話..." autocomplete="off" />
   </div>
 
-  <div v-if="!loading" class="count-label">會員數：{{ members.length }}</div>
+  <div v-if="!loading" class="count-label">會員數<strong>{{ members.length }}</strong></div>
 
   <div v-if="loading" class="empty">載入中...</div>
   <div v-else-if="filteredMembers.length === 0" class="empty">找不到符合的會員</div>
@@ -162,9 +162,20 @@ onMounted(loadMembers)
 }
 
 .count-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 16px;
+  padding: 6px 16px;
+  border: 1px solid #fff;
+  border-radius: 20px;
+}
+.count-label strong {
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
 }
 
 .member-grid {

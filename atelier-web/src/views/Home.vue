@@ -14,17 +14,7 @@ const heroImages = ref<string[]>([])
 const activeHero = ref(0)
 let heroTimer: ReturnType<typeof setInterval> | undefined
 
-// CSS 的 100svh 在某些 App 內建瀏覽器（例如 Instagram 內開網頁的 WebView）算出來的高度
-// 會比實際可視區域小，導致下方留白；改用 JS 量 window.innerHeight 比較準，且視窗尺寸變動時跟著更新
-const heroHeight = ref('100svh')
-function updateHeroHeight() {
-  heroHeight.value = `${window.innerHeight}px`
-}
-
 onMounted(async () => {
-  updateHeroHeight()
-  window.addEventListener('resize', updateHeroHeight)
-
   try {
     const { data } = await apiFetch<{ success: true; data: string[] }>('/api/covers')
     heroImages.value = data
@@ -40,14 +30,11 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(() => {
-  clearInterval(heroTimer)
-  window.removeEventListener('resize', updateHeroHeight)
-})
+onBeforeUnmount(() => clearInterval(heroTimer))
 </script>
 
 <template>
-  <div class="home" :style="{ minHeight: heroHeight }">
+  <div class="home">
     <header class="home-header">
       <button class="hamburger" aria-label="選單" @click="menuOpen = true">
         <span></span><span></span><span></span>
@@ -64,7 +51,7 @@ onBeforeUnmount(() => {
     </header>
 
     <main class="home-main">
-      <div v-if="heroImages.length > 0" class="hero-stage" :style="{ height: heroHeight }">
+      <div v-if="heroImages.length > 0" class="hero-stage">
         <img
           v-for="(url, i) in heroImages"
           :key="url"
@@ -169,7 +156,11 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   width: 100%;
-  height: 100%;
+  /* 100svh 是 fallback（瀏覽器不支援 lvh 時，這行 height 直接被跳過，維持上一行）；
+     支援 lvh 的瀏覽器則蓋成「最大可視高度 + 底部緩衝」，確保圖片高度永遠蓋滿螢幕，
+     不會因為 App 內建瀏覽器（例如 Instagram 的 WebView）UI 收合/展開時算出的可視區域比預期小而下方留白 */
+  height: 100svh;
+  height: calc(100lvh + max(env(safe-area-inset-bottom, 0px), 60px));
   object-fit: cover;
   object-position: center center;
   display: block;

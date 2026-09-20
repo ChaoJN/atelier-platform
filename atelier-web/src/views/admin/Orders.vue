@@ -215,7 +215,7 @@ onMounted(async () => {
     <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
   </div>
 
-  <div v-if="!loading" class="count-label">訂單數：{{ filteredOrders.length }}</div>
+  <div v-if="!loading" class="count-label">訂單數<strong>{{ filteredOrders.length }}</strong></div>
 
   <table class="orders-table">
     <thead>
@@ -423,9 +423,20 @@ onMounted(async () => {
 }
 
 .count-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 16px;
+  padding: 6px 16px;
+  border: 1px solid #fff;
+  border-radius: 20px;
+}
+.count-label strong {
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
 }
 
 .orders-table {
