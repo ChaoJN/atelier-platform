@@ -63,9 +63,12 @@ checkout.post('/', async (c) => {
 
     if (error) throw error
 
-    // 寄送訂單確認信（非同步，不影響回應速度）
-    sendOrderMail(c.env, { ...data[0], member_email: user.email! }).catch((err) =>
-      console.error('寄信失敗：', (err as Error).message)
+    // 寄送訂單確認信（非同步，不影響回應速度）——用 waitUntil 交給 Workers 執行環境，
+    // 不然回應送出後這個請求的 context 可能被直接回收，寄信的 fetch 還沒完成就被砍斷，信永遠寄不出去
+    c.executionCtx.waitUntil(
+      sendOrderMail(c.env, { ...data[0], member_email: user.email! }).catch((err) =>
+        console.error('寄信失敗：', (err as Error).message)
+      )
     )
 
     return c.json({ success: true, message: '訂單建立成功', data }, 201)
