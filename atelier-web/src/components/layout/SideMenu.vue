@@ -96,7 +96,10 @@ async function logout() {
   top: 0;
   left: 0;
   right: 0;
-  bottom: -200px;
+  /* 用跟首頁封面圖同一套 lvh + 緩衝的算法，不要用固定 px 硬撐高度——
+     固定值在某些 App 內建瀏覽器（例如 Instagram 的 WebView）算出的可視高度比預期大時會不夠蓋滿，下方就會露出留白 */
+  height: 100svh;
+  height: calc(100lvh + max(env(safe-area-inset-bottom, 0px), 60px));
   background: rgba(0, 0, 0, 0.4);
   z-index: 100;
   opacity: 0;
@@ -111,8 +114,9 @@ async function logout() {
   position: fixed;
   top: 0;
   left: 0;
-  bottom: -200px;
   width: 260px;
+  height: 100svh;
+  height: calc(100lvh + max(env(safe-area-inset-bottom, 0px), 60px));
   background: #fff;
   z-index: 101;
   transform: translateX(-100%);

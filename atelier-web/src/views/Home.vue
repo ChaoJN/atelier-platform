@@ -26,7 +26,7 @@ onMounted(async () => {
   if (heroImages.value.length > 1) {
     heroTimer = setInterval(() => {
       activeHero.value = (activeHero.value + 1) % heroImages.value.length
-    }, 5000)
+    }, 6000)
   }
 })
 
@@ -166,7 +166,7 @@ onBeforeUnmount(() => clearInterval(heroTimer))
   display: block;
   background: #f5f5f5;
   opacity: 0;
-  transition: opacity 1s ease;
+  transition: opacity 2s ease;
 }
 .hero-img.active {
   opacity: 1;
