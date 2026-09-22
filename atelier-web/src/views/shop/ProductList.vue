@@ -13,10 +13,15 @@ const route = useRoute()
 const router = useRouter()
 const categories = useCategoriesStore()
 
+const PAGE_SIZE = 20
+
 const products = ref<Product[]>([])
 const loading = ref(false)
 const loadFailed = ref(false)
 const imageIndex = reactive<Record<number, number>>({})
+const page = ref(1)
+const hasMore = ref(true)
+const loadingMore = ref(false)
 
 const currentCategory = computed(() => (route.query.category as string) ?? '')
 const currentKeyword = computed(() => (route.query.keyword as string) ?? '')
@@ -83,22 +88,47 @@ function startCarousel() {
   }, 2000)
 }
 
+async function fetchPage(pageNum: number) {
+  const params = new URLSearchParams()
+  if (currentCategory.value) params.set('category', currentCategory.value)
+  if (currentKeyword.value) params.set('keyword', currentKeyword.value)
+  params.set('page', String(pageNum))
+  params.set('limit', String(PAGE_SIZE))
+  const { data } = await apiFetch<{ success: true; data: Product[] }>(`/api/products?${params.toString()}`)
+  return data
+}
+
 async function loadProducts() {
   loading.value = true
   loadFailed.value = false
+  page.value = 1
   try {
-    const params = new URLSearchParams()
-    if (currentCategory.value) params.set('category', currentCategory.value)
-    if (currentKeyword.value) params.set('keyword', currentKeyword.value)
-    const qs = params.toString()
-    const { data } = await apiFetch<{ success: true; data: Product[] }>(`/api/products${qs ? `?${qs}` : ''}`)
+    const data = await fetchPage(1)
     products.value = data
+    hasMore.value = data.length === PAGE_SIZE
     for (const p of data) imageIndex[p.id] = 0
     startCarousel()
   } catch {
     loadFailed.value = true
   } finally {
     loading.value = false
+  }
+}
+
+async function loadMore() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  try {
+    const nextPage = page.value + 1
+    const data = await fetchPage(nextPage)
+    products.value = [...products.value, ...data]
+    for (const p of data) imageIndex[p.id] = 0
+    page.value = nextPage
+    hasMore.value = data.length === PAGE_SIZE
+  } catch {
+    // 載入更多失敗就安靜失敗，保留目前已載入的商品，使用者可以再按一次重試
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -156,6 +186,15 @@ onUnmounted(() => clearInterval(carouselTimer))
         </div>
       </template>
     </div>
+
+    <button
+      v-if="hasMore && !loading && sortedProducts.length > 0"
+      class="load-more-btn"
+      :disabled="loadingMore"
+      @click="loadMore"
+    >
+      {{ loadingMore ? '載入中...' : '載入更多' }}
+    </button>
   </div>
 </template>
 
@@ -275,5 +314,27 @@ onUnmounted(() => clearInterval(carouselTimer))
   font-size: 14px;
   grid-column: 1 / -1;
   background: #fff;
+}
+
+.load-more-btn {
+  display: block;
+  margin: 24px auto 40px;
+  padding: 12px 32px;
+  background: transparent;
+  border: 1px solid #333;
+  color: #333;
+  font-size: 13px;
+  letter-spacing: 1px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.load-more-btn:hover:not(:disabled) {
+  background: #333;
+  color: #fff;
+}
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

@@ -239,14 +239,14 @@ admin.delete('/categories/:id', async (c) => {
 // GET /api/admin/products - 讀取所有商品（含下架）
 admin.get('/products', async (c) => {
   try {
-    const { page = '1', limit = '20', category, keyword, is_active } = c.req.query()
+    const { category, keyword, is_active } = c.req.query()
 
+    // 後台是自己人在用，商品量不會多到影響效能，故意不分頁、一次撈全部，
+    // 不用像前台那樣做「載入更多」，維護起來比較單純
     let query = getSupabase(c.env)
       .from('products')
       .select('*, product_variants(*)')
-      .order('is_active')
-      .order('updated_at', { ascending: false }) // 有更新的商品優先
-      .order('created_at', { ascending: false }) // 最新商品優先
+      .order('id', { ascending: false }) // 新到舊，由上至下
 
     if (is_active !== undefined) {
       query = query.eq('is_active', is_active === 'true')
@@ -259,10 +259,6 @@ admin.get('/products', async (c) => {
     if (keyword) {
       query = query.ilike('product_name', `%${keyword}%`)
     }
-
-    const from = (Number(page) - 1) * Number(limit)
-    const to = from + Number(limit) - 1
-    query = query.range(from, to)
 
     const { data, error } = await query
     if (error) throw error
