@@ -299,23 +299,29 @@ function initFittingDefault() {
   fittingRows.value = [{ key: fittingRowKeySeq++, cells: Object.fromEntries(columns.map((c) => [c.key, ''])) }]
 }
 
+// 編輯模式下，畫面要等 loadProduct 讀完資料、productLoading 變 false 之後，
+// <template v-else> 那塊（含 imagesContainer）才會真的畫出來；onMounted 的 nextTick 這時候還抓不到它，
+// 所以要在 loadProduct 讀完之後也再呼叫一次，用 guard 擋重複建立
+function initImageSortable() {
+  if (sortable || !imagesContainer.value) return
+  sortable = Sortable.create(imagesContainer.value, {
+    handle: '.img-drag-handle',
+    draggable: '.img-wrapper',
+    animation: 150,
+    onEnd(evt) {
+      if (evt.oldIndex === undefined || evt.newIndex === undefined) return
+      const moved = images.value.splice(evt.oldIndex, 1)[0]
+      images.value.splice(evt.newIndex, 0, moved)
+    },
+  })
+}
+
 onMounted(() => {
   loadCategories()
   if (isEditMode.value) loadProduct(route.params.id as string)
   else initFittingDefault() // 新增商品：直接給試穿報告預設骨架
   nextTick(() => {
-    if (imagesContainer.value) {
-      sortable = Sortable.create(imagesContainer.value, {
-        handle: '.img-drag-handle',
-        draggable: '.img-wrapper',
-        animation: 150,
-        onEnd(evt) {
-          if (evt.oldIndex === undefined || evt.newIndex === undefined) return
-          const moved = images.value.splice(evt.oldIndex, 1)[0]
-          images.value.splice(evt.newIndex, 0, moved)
-        },
-      })
-    }
+    initImageSortable()
     initSizeSortable()
     initFittingSortable()
   })
@@ -638,6 +644,7 @@ async function loadProduct(id: string) {
     router.push('/admin/products')
   } finally {
     productLoading.value = false
+    nextTick(initImageSortable)
     nextTick(initSizeSortable)
     nextTick(initFittingSortable)
   }

@@ -21,6 +21,7 @@ products.get('/', async (c) => {
       .eq('is_active', true) // 前台固定只顯示上架商品
       .order('updated_at', { ascending: false }) // 有更新的商品優先
       .order('created_at', { ascending: false }) // 最新商品優先
+      .order('id', { ascending: false, referencedTable: 'product_variants' }) // 規格新到舊，顏色色塊第一個顯示最新顏色
 
     if (category) {
       query = query.contains('category', [Number(category)])
@@ -56,6 +57,7 @@ products.get('/:id', async (c) => {
       )
       .eq('id', id)
       .eq('is_active', true) // 防止用戶透過 id 直接存取下架商品
+      .order('id', { ascending: false, referencedTable: 'product_variants' }) // 規格新到舊，顏色色塊第一個顯示最新顏色
       .single()
 
     if (error) throw error

@@ -247,6 +247,7 @@ admin.get('/products', async (c) => {
       .from('products')
       .select('*, product_variants(*)')
       .order('id', { ascending: false }) // 新到舊，由上至下
+      .order('id', { ascending: false, referencedTable: 'product_variants' }) // 規格新到舊，顏色色塊第一個顯示最新顏色
 
     if (is_active !== undefined) {
       query = query.eq('is_active', is_active === 'true')
@@ -278,6 +279,7 @@ admin.get('/products/:id', async (c) => {
       .from('products')
       .select('*, product_variants(*)')
       .eq('id', id)
+      .order('id', { ascending: false, referencedTable: 'product_variants' }) // 規格新到舊，顏色色塊第一個顯示最新顏色
       .single()
 
     if (error) throw error
