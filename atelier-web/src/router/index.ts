@@ -133,7 +133,7 @@ router.beforeEach((to) => {
 
 const SITE_NAME = 'Rainstopha Select'
 const OG_DESCRIPTION = 'FIND YOUR OWN VIBE'
-const OG_IMAGE = '/assets/rainstopha-select.jpg'
+const OG_IMAGE = '/assets/cover.jpg'
 
 function setMetaTag(attr: 'name' | 'property', key: string, content: string) {
   let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`)

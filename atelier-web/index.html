@@ -5,6 +5,15 @@
     <link rel="icon" href="https://img.icons8.com/?size=100&id=hRlGryuq38s4&format=png&color=000000" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rainstopha Select</title>
+    <!-- 這幾個 OG 標籤是寫死的預設值：社群爬蟲（Facebook/LINE 等）大多不會執行 JS，
+         只抓得到這份靜態 HTML 本身的內容，router/index.ts 裡換頁動態寫入的 OG 標籤爬蟲看不到。
+         這裡只能給一組「不管分享哪個頁面都通用」的預設內容，不是每頁客製化的版本 -->
+    <meta property="og:title" content="Rainstopha Select" />
+    <meta property="og:description" content="FIND YOUR OWN VIBE" />
+    <meta property="og:image" content="https://rainstopha-select.com/assets/cover.jpg" />
+    <meta property="og:url" content="https://rainstopha-select.com" />
+    <meta property="og:type" content="website" />
+    <meta name="description" content="FIND YOUR OWN VIBE" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet" />
   </head>
   <body>
