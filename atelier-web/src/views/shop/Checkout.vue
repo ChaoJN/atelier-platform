@@ -15,6 +15,8 @@ const { alert } = useModal()
 
 type ShippingMethod = 'store-to-store' | 'hand-deliver'
 
+const MEETING_OPTIONS = ['週日小班 10/18（日）', '週一小班 10/19（一）', '週一小班 10/26（一）']
+
 const name = ref('')
 const phone = ref('')
 const remark = ref('')
@@ -28,7 +30,7 @@ const nameEl = ref<HTMLInputElement>()
 const phoneEl = ref<HTMLInputElement>()
 const storeIdEl = ref<HTMLInputElement>()
 const storeNameEl = ref<HTMLInputElement>()
-const meetingEl = ref<HTMLInputElement>()
+const meetingEl = ref<HTMLElement>()
 
 const invalid = ref<Record<string, boolean>>({})
 const submitting = ref(false)
@@ -60,7 +62,7 @@ function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).then(() => showToast('已複製帳號'))
 }
 
-async function markInvalid(field: string, el?: HTMLInputElement) {
+async function markInvalid(field: string, el?: HTMLElement) {
   invalid.value[field] = true
   await nextTick()
   el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -231,14 +233,23 @@ onMounted(() => {
       <div v-else class="delivery-detail">
         <div class="form-group">
           <label>與雨停相約</label>
-          <input
-            ref="meetingEl"
-            v-model="meetingInfo"
-            type="text"
-            placeholder="請輸入小班與時間（限雨婷小班同學）"
-            :class="{ invalid: invalid.meeting }"
-            @input="clearInvalid('meeting')"
-          />
+          <div ref="meetingEl" class="meeting-options">
+            <label
+              v-for="opt in MEETING_OPTIONS"
+              :key="opt"
+              class="meeting-option"
+              :class="{ selected: meetingInfo === opt, invalid: invalid.meeting }"
+            >
+              <input
+                v-model="meetingInfo"
+                type="radio"
+                name="meeting"
+                :value="opt"
+                @change="clearInvalid('meeting')"
+              />
+              {{ opt }}
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -491,6 +502,34 @@ onMounted(() => {
 }
 .option-label {
   font-size: 14px;
+}
+
+.meeting-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.meeting-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.15s;
+}
+.meeting-option.selected {
+  border-color: #333;
+}
+.meeting-option.invalid {
+  border-color: #ff7875;
+}
+.meeting-option input[type='radio'] {
+  accent-color: #333;
+  width: 16px;
+  height: 16px;
 }
 .option-sub {
   font-size: 12px;
