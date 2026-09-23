@@ -297,7 +297,7 @@ onMounted(() => {
           <input v-model="paymentMethod" type="radio" name="payment" value="transfer" />
           <div>
             <div class="option-label">銀行轉帳</div>
-            <div class="option-sub">下單後 3 天內完成匯款</div>
+            <div class="option-sub">下單後 2 天內完成匯款</div>
           </div>
         </label>
       </div>

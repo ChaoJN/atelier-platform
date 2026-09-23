@@ -146,7 +146,7 @@ export async function sendOrderMail(env: Bindings, order: OrderMailPayload) {
                         銀行：(013) 國泰世華銀行<br>
                         帳號：<strong style="color:#3D3025; font-family:monospace; font-size:15px;">269506125994</strong><br>
                         戶名：陳語庭<br>
-                        <span style="color:#8C7662; font-size:13px; display:block; margin-top:6px;">※ 請於 3 天內完成匯款，並登入官網 [ACCOUNT > 訂單記錄] 填寫帳號末五碼以供核對 ※</span>
+                        <span style="color:#8C7662; font-size:13px; display:block; margin-top:6px;">※ 請於 2 天內完成匯款，並登入官網 [ACCOUNT > 訂單記錄] 填寫帳號末五碼以供核對 ※</span>
                     </div>`
                         : ''
                     }
