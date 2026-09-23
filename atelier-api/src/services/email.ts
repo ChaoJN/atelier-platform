@@ -178,7 +178,7 @@ export async function sendOrderMail(env: Bindings, order: OrderMailPayload) {
       from: 'Rainstopha Select <service@rainstopha-select.com>',
       to: order.member_email,
       // 用 bcc 通知管理者：跟 cc 不同，客戶收到的信看不到這兩個內部信箱，也不會多算一封 Resend 額度
-      bcc: ['rainstopha@gmail.com', 'sever.from.now@gmail.com'],
+      bcc: ['rainstopha@gmail.com', 'serve.from.now@gmail.com'],
       subject: `【Rainstopha Select】訂單確認 ${order.order_no}`,
       html,
     }),
