@@ -236,13 +236,13 @@ onMounted(async () => {
   <table class="orders-table">
     <thead>
       <tr>
-        <th>訂單編號</th>
-        <th>會員</th>
-        <th>付款方式</th>
-        <th>末五碼</th>
-        <th>實付金額</th>
-        <th>狀態</th>
-        <th>變更狀態</th>
+        <th style="width: 18%">訂單編號</th>
+        <th style="width: 14%">會員</th>
+        <th style="width: 12%">付款方式</th>
+        <th style="width: 12%">末五碼</th>
+        <th style="width: 14%">實付金額</th>
+        <th style="width: 12%">狀態</th>
+        <th style="width: 18%">變更狀態</th>
       </tr>
     </thead>
     <tbody>
@@ -513,7 +513,11 @@ onMounted(async () => {
 }
 .orders-table {
   width: 100%;
-  min-width: 700px; /* 固定住一個最小寬度，欄寬才不會因為展開/收合明細而重新計算、跳動跑版 */
+  min-width: 700px;
+  /* table-layout:fixed 讓欄寬只看表頭那一列的 width 決定，之後不管哪一列的內容是什麼
+     （尤其是展開的明細列，裡面是 colspan=7 包一個 grid）都不會拿去重新計算欄寬，
+     不然預設的 auto 版面每次展開/收合都會重新分配欄寬，內容看起來像左右跳動 */
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 14px;
 }
