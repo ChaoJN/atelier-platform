@@ -2,9 +2,12 @@
 
 /* 固定保留垂直捲軸的空間：不設這個的話，頁面內容高度剛好跨過視窗高度時
    （例如後台展開訂單明細），捲軸會突然出現/消失，可視寬度跟著變，
-   水平置中的區塊（margin: 0 auto）就會跟著小幅度左右位移，看起來像跑版 */
+   水平置中的區塊（margin: 0 auto）就會跟著小幅度左右位移，看起來像跑版。
+   scrollbar-gutter 是新屬性，Safari 目前完全不支援，所以額外加 overflow-y: scroll
+   這個所有瀏覽器都吃的舊寫法（強制捲軸一直顯示，不要「需要時才出現」）當雙重保險 */
 html {
   scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {

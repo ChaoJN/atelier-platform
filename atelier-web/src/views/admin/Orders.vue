@@ -224,8 +224,10 @@ onMounted(async () => {
     >
       {{ opt.label }}
     </button>
-    <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
-    <button class="export-btn" :disabled="filteredOrders.length === 0" @click="printPackingSlips">產生訂單明細</button>
+    <div class="export-actions">
+      <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
+      <button class="export-btn" :disabled="filteredOrders.length === 0" @click="printPackingSlips">產生訂單明細</button>
+    </div>
   </div>
 
   <div v-if="!loading" class="count-label">訂單數<strong>{{ filteredOrders.length }}</strong></div>
@@ -461,8 +463,12 @@ onMounted(async () => {
   background: #222;
 }
 
-.export-btn {
+.export-actions {
   margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.export-btn {
   padding: 6px 16px;
   border: 1px solid #fff;
   border-radius: 20px;
