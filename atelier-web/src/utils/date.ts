@@ -8,3 +8,9 @@ export function taipeiToday(offsetDays = 0): string {
   d.setUTCDate(d.getUTCDate() + offsetDays)
   return d.toISOString().slice(0, 10)
 }
+
+export function taipeiMonthsAgo(months: number): string {
+  const d = new Date(Date.now() + TAIPEI_OFFSET_MS)
+  d.setUTCMonth(d.getUTCMonth() - months)
+  return d.toISOString().slice(0, 10)
+}

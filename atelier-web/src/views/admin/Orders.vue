@@ -5,6 +5,7 @@ import type { Order, OrderStatus } from '@atelier/types'
 import { adminApiFetch } from '@/composables/useApi'
 import { useAdminGuard } from '@/composables/useAdminGuard'
 import { useModal } from '@/composables/useModal'
+import { taipeiToday, taipeiMonthsAgo } from '@/utils/date'
 
 type AdminOrder = Order & { member_name: string | null; member_email: string | null }
 
@@ -43,9 +44,8 @@ const keyword = ref('')
 const currentFilter = ref<OrderStatus | ''>('')
 const expandedId = ref<number | null>(null)
 
-// 預設不篩日期（空字串），只有使用者自己選了才會生效，跟 Analytics 頁預設抓近 30 天不同
-const dateStart = ref('')
-const dateEnd = ref('')
+const dateStart = ref(taipeiMonthsAgo(1))
+const dateEnd = ref(taipeiToday(0))
 
 function onDateStartChange() {
   if (dateStart.value && dateEnd.value && dateStart.value > dateEnd.value) dateEnd.value = dateStart.value
@@ -479,6 +479,7 @@ onMounted(async () => {
 .date-filter-bar label {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
+  width: 100%;
 }
 .date-filter-bar input[type='date'] {
   background: #2a2a2a;
