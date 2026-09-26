@@ -1,5 +1,12 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* 固定保留垂直捲軸的空間：不設這個的話，頁面內容高度剛好跨過視窗高度時
+   （例如後台展開訂單明細），捲軸會突然出現/消失，可視寬度跟著變，
+   水平置中的區塊（margin: 0 auto）就會跟著小幅度左右位移，看起來像跑版 */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
   background: #fff;

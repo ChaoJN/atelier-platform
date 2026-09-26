@@ -55,6 +55,9 @@ const filteredOrders = computed(() => {
     const orderNoUpper = o.order_no.toUpperCase()
     if (terms.every((t) => orderNoUpper.includes(t))) return true
 
+    const memberHaystack = [o.member_name, o.member_email].filter(Boolean).join(' ').toUpperCase()
+    if (terms.every((t) => memberHaystack.includes(t))) return true
+
     // 每個詞必須同時出現在「同一個商品項目」的名稱＋顏色＋尺寸組合裡，
     // 才算符合，避免多商品訂單裡分別各自符合不同詞卻誤判成同一項規格
     return (o.order_items ?? []).some((item) => {
@@ -143,6 +146,15 @@ function exportCsv() {
   URL.revokeObjectURL(url)
 }
 
+// ── 產生訂單明細（給包貨時附在包裹裡用）──
+// 直接用瀏覽器內建列印功能：畫面上另外藏一份「純列印用」版面（.print-only），
+// 平常不顯示，只有在列印時（@media print）才蓋掉整個畫面顯示出來，
+// 不用額外套件產生真的 PDF 檔，使用者按下列印還能先用瀏覽器原生預覽看一次排版
+function printPackingSlips() {
+  if (filteredOrders.value.length === 0) return
+  window.print()
+}
+
 function onImgError(e: Event) {
   ;(e.target as HTMLImageElement).src = BLANK
 }
@@ -188,7 +200,7 @@ onMounted(async () => {
 
 <template>
   <div class="search-container">
-    <input v-model="keyword" type="text" placeholder="搜尋訂單編號、商品名稱、顏色或尺寸..." autocomplete="off" />
+    <input v-model="keyword" type="text" placeholder="搜尋訂單編號、會員名稱、信箱、商品名稱、顏色或尺寸..." autocomplete="off" />
     <button type="button" class="search-info" aria-label="搜尋說明">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -196,7 +208,7 @@ onMounted(async () => {
         <line x1="12" y1="8" x2="12.01" y2="8"></line>
       </svg>
       <div class="search-tooltip">
-        可輸入多個關鍵字，用空白分隔（例如「葫蘆褲 BLACK M」），每個詞都要同時符合同一項商品的名稱、顏色或尺寸才會顯示；也可以直接搜訂單編號。
+        可輸入多個關鍵字，用空白分隔（例如「葫蘆褲 BLACK M」），每個詞都要同時符合同一項商品的名稱、顏色或尺寸才會顯示；也可以直接搜訂單編號、會員名稱或信箱。
       </div>
     </button>
   </div>
@@ -213,10 +225,12 @@ onMounted(async () => {
       {{ opt.label }}
     </button>
     <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
+    <button class="export-btn" :disabled="filteredOrders.length === 0" @click="printPackingSlips">產生訂單明細</button>
   </div>
 
   <div v-if="!loading" class="count-label">訂單數<strong>{{ filteredOrders.length }}</strong></div>
 
+  <div class="table-wrap">
   <table class="orders-table">
     <thead>
       <tr>
@@ -302,6 +316,55 @@ onMounted(async () => {
       </template>
     </tbody>
   </table>
+  </div>
+
+  <!-- 平常完全不顯示，只有 window.print() 觸發列印時，@media print 才會蓋掉整頁顯示這裡 -->
+  <div class="print-only">
+    <div v-for="order in filteredOrders" :key="`print-${order.id}`" class="packing-slip">
+      <div class="slip-header">
+        <div class="slip-brand">Rainstopha Select</div>
+        <div class="slip-order-no">訂單編號：{{ order.order_no }}</div>
+        <div class="slip-date">訂單日期：{{ formatDate(order.created_at) }}</div>
+      </div>
+
+      <div class="slip-section">
+        <div class="slip-label">收件資訊</div>
+        <div>收件人：{{ order.recipient_name || '—' }}</div>
+        <div>電話：{{ order.recipient_phone || '—' }}</div>
+        <div>配送方式：{{ deliveryLabel(order.delivery_method) }}</div>
+        <div>配送詳情：{{ deliveryDetail(order) }}</div>
+      </div>
+
+      <div class="slip-label">商品明細</div>
+      <table class="slip-items">
+        <thead>
+          <tr>
+            <th>商品</th>
+            <th>規格</th>
+            <th>數量</th>
+            <th>金額</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, i) in order.order_items" :key="i">
+            <td>{{ item.productName }}</td>
+            <td>{{ [item.color, item.size].filter(Boolean).join('・') || '—' }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>NT$ {{ (item.price * item.quantity).toLocaleString() }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="slip-total">
+        <div>商品金額：NT$ {{ order.order_amount.toLocaleString() }}</div>
+        <div v-if="order.discount_amount">折扣：－NT$ {{ order.discount_amount.toLocaleString() }}</div>
+        <div v-if="order.delivery_fee">運費：NT$ {{ order.delivery_fee.toLocaleString() }}</div>
+        <div class="slip-total-amount">實付金額：NT$ {{ order.pay_amount.toLocaleString() }}</div>
+      </div>
+
+      <div v-if="order.remark" class="slip-remark">備註：{{ order.remark }}</div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -439,8 +502,12 @@ onMounted(async () => {
   color: #fff;
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
 .orders-table {
   width: 100%;
+  min-width: 700px; /* 固定住一個最小寬度，欄寬才不會因為展開/收合明細而重新計算、跳動跑版 */
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -636,5 +703,99 @@ onMounted(async () => {
   color: rgba(255, 255, 255, 0.3);
   padding: 40px 0;
   text-align: center;
+}
+
+/* ── 訂單明細（列印用） ── */
+.print-only {
+  display: none;
+}
+@media print {
+  .print-only {
+    display: block;
+  }
+  .packing-slip {
+    page-break-after: always;
+  }
+  .packing-slip:last-child {
+    page-break-after: auto;
+  }
+}
+.packing-slip {
+  padding: 32px;
+  color: #000;
+  background: #fff;
+  font-size: 13px;
+}
+.slip-header {
+  border-bottom: 2px solid #000;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.slip-brand {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.slip-order-no {
+  font-weight: bold;
+}
+.slip-date {
+  color: #555;
+}
+.slip-section {
+  margin-bottom: 16px;
+  line-height: 1.8;
+}
+.slip-label {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.slip-items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+.slip-items th,
+.slip-items td {
+  border: 1px solid #999;
+  padding: 6px 10px;
+  text-align: left;
+}
+.slip-total {
+  line-height: 1.8;
+  text-align: right;
+  margin-bottom: 16px;
+}
+.slip-total-amount {
+  font-size: 16px;
+  font-weight: bold;
+  border-top: 1px solid #000;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+.slip-remark {
+  border-top: 1px dashed #999;
+  padding-top: 10px;
+}
+</style>
+
+<!-- 這幾條規則要動到 <body>，Vue scoped CSS 沒辦法正確處理「選擇器起頭是元件外面的元素」這種情況
+     （scoped 會把 data-v 屬性錯誤地加到 body 上，但真正的 <body> 標籤沒有這個屬性，規則就完全不會生效），
+     所以另外開一個沒有 scoped 的 style block 放這幾條全域規則 -->
+<style>
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-only,
+  .print-only * {
+    visibility: visible;
+  }
+  .print-only {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
 }
 </style>

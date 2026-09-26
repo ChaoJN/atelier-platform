@@ -256,7 +256,6 @@ async function deleteCategory(cat: Category) {
       <div class="product-info" @click="onCardClick(p)">
         <div class="name">{{ p.product_name }}</div>
         <div class="price">NT$ {{ p.price }} / NT$ {{ p.cost_price }}</div>
-        <div class="stock">庫存：-</div>
         <div class="status" :class="p.is_active ? 'active' : 'inactive'">
           {{ p.is_active ? '上架中' : '已下架' }}
         </div>
