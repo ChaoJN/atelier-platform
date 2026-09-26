@@ -48,7 +48,7 @@ function statusFor(status: OrderStatus) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('zh-TW')
+  return new Date(iso).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })
 }
 
 function goToOrder(orderNo: string) {

@@ -74,7 +74,7 @@ const createdAt = ref<string | null>(null)
 const updatedAt = ref<string | null>(null)
 
 function formatDateTime(iso: string | null) {
-  return iso ? new Date(iso).toLocaleString('zh-TW') : '-'
+  return iso ? new Date(iso).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '-'
 }
 
 function toggleCategory(id: number) {

@@ -43,13 +43,36 @@ const keyword = ref('')
 const currentFilter = ref<OrderStatus | ''>('')
 const expandedId = ref<number | null>(null)
 
+// 預設不篩日期（空字串），只有使用者自己選了才會生效，跟 Analytics 頁預設抓近 30 天不同
+const dateStart = ref('')
+const dateEnd = ref('')
+
+function onDateStartChange() {
+  if (dateStart.value && dateEnd.value && dateStart.value > dateEnd.value) dateEnd.value = dateStart.value
+}
+function onDateEndChange() {
+  if (dateStart.value && dateEnd.value && dateEnd.value < dateStart.value) dateStart.value = dateEnd.value
+}
+function clearDateFilter() {
+  dateStart.value = ''
+  dateEnd.value = ''
+}
+
 const filteredOrders = computed(() => {
   // 用空白分詞，每個詞都要對到才算符合（AND），這樣才能同時打「品名 顏色 尺寸」一次篩出
   // 訂了某個商品特定顏色尺寸的訂單，不會只符合其中一個詞就整批撈出來
   const terms = keyword.value.trim().toUpperCase().split(/\s+/).filter(Boolean)
+  // 用 +08:00 明確指定台北時區的當地時間邊界，不受瀏覽器本機時區影響
+  const start = dateStart.value ? new Date(`${dateStart.value}T00:00:00+08:00`) : null
+  const end = dateEnd.value ? new Date(`${dateEnd.value}T23:59:59+08:00`) : null
 
   return orders.value.filter((o) => {
     if (currentFilter.value && o.status !== currentFilter.value) return false
+    if (start || end) {
+      const d = new Date(o.created_at)
+      if (start && d < start) return false
+      if (end && d > end) return false
+    }
     if (terms.length === 0) return true
 
     const orderNoUpper = o.order_no.toUpperCase()
@@ -72,11 +95,11 @@ function statusFor(status: OrderStatus) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('zh-TW')
+  return new Date(iso).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })
 }
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('zh-TW', { hour12: false })
+  return new Date(iso).toLocaleString('zh-TW', { hour12: false, timeZone: 'Asia/Taipei' })
 }
 
 function paymentLabel(method: string) {
@@ -211,6 +234,14 @@ onMounted(async () => {
         可輸入多個關鍵字，用空白分隔（例如「葫蘆褲 BLACK M」），每個詞都要同時符合同一項商品的名稱、顏色或尺寸才會顯示；也可以直接搜訂單編號、會員名稱或信箱。
       </div>
     </button>
+  </div>
+
+  <div class="date-filter-bar">
+    <label>日期區間</label>
+    <input v-model="dateStart" type="date" @change="onDateStartChange" />
+    <span class="filter-sep">—</span>
+    <input v-model="dateEnd" type="date" @change="onDateEndChange" />
+    <button v-if="dateStart || dateEnd" type="button" class="date-clear-btn" @click="clearDateFilter">清除日期</button>
   </div>
 
   <div class="filter-bar">
@@ -433,6 +464,58 @@ onMounted(async () => {
 .search-info:focus-visible .search-tooltip {
   opacity: 1;
   pointer-events: auto;
+}
+
+.date-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 10px 16px;
+}
+.date-filter-bar label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.date-filter-bar input[type='date'] {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+  position: relative;
+}
+.date-filter-bar input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  opacity: 0;
+}
+.date-filter-bar .filter-sep {
+  color: rgba(255, 255, 255, 0.4);
+}
+.date-clear-btn {
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.date-clear-btn:hover {
+  border-color: #fff;
+  color: #fff;
 }
 
 .filter-bar {

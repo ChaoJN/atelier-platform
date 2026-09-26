@@ -4,6 +4,7 @@ import type { Order, AdminProduct } from '@atelier/types'
 import { adminApiFetch } from '@/composables/useApi'
 import { useAdminGuard } from '@/composables/useAdminGuard'
 import { useModal } from '@/composables/useModal'
+import { taipeiToday } from '@/utils/date'
 
 interface ProcurementRecord {
   product_id: number
@@ -15,14 +16,8 @@ interface ProcurementRecord {
 const { handleAuthError } = useAdminGuard()
 const { confirm } = useModal()
 
-function todayStr(offsetDays = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return d.toISOString().slice(0, 10)
-}
-
-const dateStart = ref(todayStr(-30))
-const dateEnd = ref(todayStr(0))
+const dateStart = ref(taipeiToday(-30))
+const dateEnd = ref(taipeiToday(0))
 
 const allOrders = ref<Order[]>([])
 const costMap = reactive<Record<number, number>>({}) // productId -> cost_price
@@ -40,8 +35,9 @@ function getProc(productId: number, color: string, size: string) {
 const hasCost = computed(() => Object.keys(costMap).length > 0)
 
 const filteredOrders = computed(() => {
-  const start = dateStart.value ? new Date(`${dateStart.value}T00:00:00`) : null
-  const end = dateEnd.value ? new Date(`${dateEnd.value}T23:59:59`) : null
+  // 用 +08:00 明確指定台北時區的當地時間邊界，不受瀏覽器本機時區影響
+  const start = dateStart.value ? new Date(`${dateStart.value}T00:00:00+08:00`) : null
+  const end = dateEnd.value ? new Date(`${dateEnd.value}T23:59:59+08:00`) : null
   return allOrders.value.filter((o) => {
     if (o.status === 'cancelled') return false
     const d = new Date(o.created_at)

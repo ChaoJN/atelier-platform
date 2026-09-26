@@ -63,7 +63,7 @@ export async function sendOrderMail(env: Bindings, order: OrderMailPayload) {
                             <td style="padding:4px 0;"><strong>訂單編號：</strong><span style="color:#3D3025; font-family:monospace; font-size:15px;">${order.order_no}</span></td>
                         </tr>
                         <tr>
-                            <td style="padding:4px 0;"><strong>訂單日期：</strong>${new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                            <td style="padding:4px 0;"><strong>訂單日期：</strong>${new Date(order.created_at).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}</td>
                         </tr>
                     </table>
 
