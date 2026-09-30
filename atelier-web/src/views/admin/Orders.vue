@@ -153,7 +153,7 @@ function exportCsv() {
     csvCell(o.recipient_name ?? ''),
     csvCell(o.recipient_phone ?? ''),
     csvCell(deliveryDetail(o)),
-    csvCell(o.remark ?? ''),
+    csvCellPlain(o.remark ?? ''),
   ])
 
   const csvText = [headers.map(csvCell), ...rows].map((row) => row.join(',')).join('\r\n')
@@ -334,7 +334,7 @@ onMounted(async () => {
                 <div class="detail-row-info"><span class="detail-key">收件人</span><span>{{ order.recipient_name ?? '—' }}</span></div>
                 <div class="detail-row-info"><span class="detail-key">電話</span><span>{{ order.recipient_phone ?? '—' }}</span></div>
                 <div class="detail-row-info"><span class="detail-key">會員信箱</span><span>{{ order.member_email ?? '—' }}</span></div>
-                <div v-if="order.remark" class="detail-row-info"><span class="detail-key">備註</span><span>{{ order.remark }}</span></div>
+                <div v-if="order.remark" class="detail-row-info"><span class="detail-key">備註</span><span class="remark-value">{{ order.remark }}</span></div>
               </div>
               <div>
                 <div class="detail-section-title">歷史狀態</div>
@@ -741,6 +741,9 @@ onMounted(async () => {
   font-size: 13px;
   margin-bottom: 4px;
 }
+.remark-value {
+  white-space: pre-wrap;
+}
 .detail-key {
   color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
@@ -870,6 +873,7 @@ onMounted(async () => {
 .slip-remark {
   border-top: 1px dashed #999;
   padding-top: 10px;
+  white-space: pre-wrap;
 }
 </style>
 

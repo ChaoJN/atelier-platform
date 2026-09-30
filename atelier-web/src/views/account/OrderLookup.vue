@@ -544,6 +544,7 @@ onMounted(() => {
 .remark-text {
   font-size: 13px;
   color: #555;
+  white-space: pre-wrap;
 }
 
 .empty-state {
