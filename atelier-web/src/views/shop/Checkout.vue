@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import type { Product } from '@atelier/types'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { apiFetch } from '@/composables/useApi'
@@ -34,6 +35,7 @@ const meetingEl = ref<HTMLElement>()
 
 const invalid = ref<Record<string, boolean>>({})
 const submitting = ref(false)
+const validatingCart = ref(true)
 const toastMsg = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -71,6 +73,45 @@ async function markInvalid(field: string, el?: HTMLElement) {
 
 function clearInvalid(field: string) {
   invalid.value[field] = false
+}
+
+// 購物車存在 localStorage，使用者裝置快取可能放很久都不會清掉，
+// 期間商品可能已下架（is_active）或該顏色/尺寸品項已補貨中/下架（is_available），
+// 所以進 checkout 頁時要先跟後端核對一次，不能只信任本機快取的舊資料
+async function validateCartAgainstCatalog() {
+  const productIds = [...new Set(cart.items.map((item) => item.productId))]
+  const productMap = new Map<number, Product | null>()
+
+  await Promise.all(
+    productIds.map(async (id) => {
+      try {
+        // GET /api/products/:id 本身就只回傳 is_active=true 的商品，查不到（404）就代表已下架或已刪除
+        const res = await apiFetch<{ success: boolean; data: Product }>(`/api/products/${id}`)
+        productMap.set(id, res.data)
+      } catch {
+        productMap.set(id, null)
+      }
+    })
+  )
+
+  const removedLabels: string[] = []
+  for (let i = cart.items.length - 1; i >= 0; i--) {
+    const item = cart.items[i]
+    const product = productMap.get(item.productId)
+    const variant = product?.product_variants?.find(
+      (v) => v.color_code === item.colorCode && v.size === item.size
+    )
+    const stillValid = !!product && !!variant && variant.is_available
+    if (!stillValid) {
+      const spec = variantLabel(item.color, item.size)
+      removedLabels.push(spec ? `${item.productName}（${spec}）` : item.productName)
+      cart.removeItem(i)
+    }
+  }
+
+  if (removedLabels.length > 0) {
+    await alert(`以下商品已下架或缺貨，自動從購物車移除：\n${removedLabels.join('\n')}`)
+  }
 }
 
 async function submitOrder() {
@@ -138,12 +179,20 @@ async function submitOrder() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (!auth.isLoggedIn) {
     localStorage.setItem('redirect_after_login', '/checkout')
     router.push('/login')
     return
   }
+  if (cart.items.length === 0) {
+    router.push('/cart')
+    return
+  }
+
+  await validateCartAgainstCatalog()
+  validatingCart.value = false
+
   if (cart.items.length === 0) {
     router.push('/cart')
     return
@@ -328,8 +377,8 @@ onMounted(() => {
       <div class="total-row final"><span>應付金額</span><span>NT$ {{ finalTotal.toLocaleString() }}</span></div>
     </div>
 
-    <button class="submit-btn" :disabled="submitting" @click="submitOrder">
-      {{ submitting ? '處理中...' : '確認下單' }}
+    <button class="submit-btn" :disabled="submitting || validatingCart" @click="submitOrder">
+      {{ validatingCart ? '確認商品狀態中...' : submitting ? '處理中...' : '確認下單' }}
     </button>
   </div>
 
