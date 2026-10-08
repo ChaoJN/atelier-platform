@@ -532,18 +532,33 @@ tr:hover td {
 }
 .print-table {
   width: 100%;
-  border-collapse: collapse;
+  /* 故意不用 border-collapse: collapse——Chrome 轉 PDF 時常會把 collapse 模式下
+     剛好等於表格外框的「最後一列底框」吃掉（已實測重現）。改用 separate +
+     border-spacing: 0，讓每個儲存格各自畫自己的框線，視覺上看起來一樣，
+     但不會共用、也就不會被這個 bug 漏畫 */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13px;
   color: #000;
 }
 .print-table th,
 .print-table td {
-  border: 1px solid #999;
+  /* 每一條線只讓一個儲存格負責畫（右邊框、下邊框），避免 separate 模式下
+     相鄰儲存格各畫一次邊框，疊出變粗的雙線 */
+  border-right: 1px solid #999;
+  border-bottom: 1px solid #999;
   padding: 6px 10px;
   text-align: left;
   color: #000;
   font-size: 13px;
   font-weight: normal;
+}
+.print-table th:first-child,
+.print-table td:first-child {
+  border-left: 1px solid #999;
+}
+.print-table thead th {
+  border-top: 1px solid #999;
 }
 .print-table th {
   font-weight: bold;
