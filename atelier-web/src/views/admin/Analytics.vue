@@ -88,6 +88,14 @@ const demandRows = computed<DemandRow[]>(() => {
   )
 })
 
+const printedAt = ref('')
+
+function printProcurementList() {
+  if (demandRows.value.length === 0) return
+  printedAt.value = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })
+  window.print()
+}
+
 function onDateStartChange() {
   if (dateStart.value && dateEnd.value && dateStart.value > dateEnd.value) dateEnd.value = dateStart.value
 }
@@ -162,6 +170,10 @@ onMounted(async () => {
 </script>
 
 <template>
+  <!-- 列印時只留 .print-only，這層整個隱藏——跟 Orders.vue 訂單明細同一套做法，
+       不要用 visibility:hidden + position:absolute 疊加，那樣隱藏內容還是會撐出版面高度，
+       轉存 PDF 時會多出一堆空白頁 -->
+  <div class="screen-only">
   <div class="filter-bar">
     <label>日期區間</label>
     <input v-model="dateStart" type="date" @change="onDateStartChange" />
@@ -192,7 +204,10 @@ onMounted(async () => {
 
   <div class="section-header">
     <div class="section-label">採購統整</div>
-    <button class="reset-btn" @click="resetProcurement">重置採購紀錄</button>
+    <div class="section-actions">
+      <button class="print-btn" :disabled="demandRows.length === 0" @click="printProcurementList">列印盤貨清單</button>
+      <button class="reset-btn" @click="resetProcurement">重置採購紀錄</button>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -237,6 +252,39 @@ onMounted(async () => {
               {{ Math.max(0, row.qty - getProc(row.productId, row.color, row.size)) === 0 ? '✓' : Math.max(0, row.qty - getProc(row.productId, row.color, row.size)) }}
             </span>
           </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  </div>
+
+  <!-- 平常完全不顯示，只有 window.print() 觸發列印時，@media print 才會蓋掉整頁顯示這裡 -->
+  <div class="print-only">
+    <div class="print-header">
+      <div class="print-brand">Rainstopha Select</div>
+      <div class="print-title">盤貨清單</div>
+      <div class="print-meta">日期區間：{{ dateStart }} ～ {{ dateEnd }}</div>
+      <div class="print-meta">列印時間：{{ printedAt }}</div>
+    </div>
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>商品名稱</th>
+          <th>顏色</th>
+          <th>尺寸</th>
+          <th>訂單需求</th>
+          <th>目前採購</th>
+          <th>尚未採購</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in demandRows" :key="`print-${row.productId}-${row.color}-${row.size}`">
+          <td>{{ row.name }}</td>
+          <td>{{ row.color || '—' }}</td>
+          <td>{{ row.size || '—' }}</td>
+          <td>{{ row.qty }}</td>
+          <td>{{ getProc(row.productId, row.color, row.size) || 0 }}</td>
+          <td>{{ Math.max(0, row.qty - getProc(row.productId, row.color, row.size)) }}</td>
         </tr>
       </tbody>
     </table>
@@ -323,6 +371,10 @@ onMounted(async () => {
   text-transform: uppercase;
   font-weight: bold;
 }
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
 .reset-btn {
   padding: 6px 16px;
   background: transparent;
@@ -336,6 +388,28 @@ onMounted(async () => {
 .reset-btn:hover {
   border-color: #f87171;
   color: #f87171;
+}
+.print-btn {
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid #fff;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.2s, color 0.2s;
+}
+.print-btn:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+}
+.print-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #444;
+  color: #444;
 }
 
 .table-wrap {
@@ -418,5 +492,60 @@ tr:hover td {
   padding: 60px 0;
   text-align: center;
   font-size: 14px;
+}
+
+/* ── 盤貨清單（列印用） ── */
+.print-only {
+  display: none;
+}
+@media print {
+  .screen-only {
+    display: none;
+  }
+  .print-only {
+    display: block;
+  }
+}
+.print-only {
+  background: #fff;
+  padding: 32px;
+}
+.print-header {
+  border-bottom: 2px solid #000;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  color: #000;
+}
+.print-brand {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.print-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.print-meta {
+  font-size: 13px;
+  color: #555;
+}
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: #000;
+}
+.print-table th,
+.print-table td {
+  border: 1px solid #999;
+  padding: 6px 10px;
+  text-align: left;
+  color: #000;
+  font-size: 13px;
+  font-weight: normal;
+}
+.print-table th {
+  font-weight: bold;
 }
 </style>

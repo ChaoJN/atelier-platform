@@ -38,6 +38,10 @@ async function logout() {
 <template>
   <div class="admin-shell">
     <div class="admin-container">
+      <!-- 標題列跟選單是這層 layout 自己的，不屬於任何子頁面的 .screen-only，
+           子頁面列印時（例如訂單明細、盤貨清單）如果沒額外處理，這兩塊還是會印在每一頁最上面——
+           所以也用同一招在 layout 這層把它們包起來，列印時一起藏掉 -->
+      <div class="screen-only">
       <div class="admin-header">
         <h1 @click="router.push('/admin/dashboard')">Rainstopha Select 系統後台</h1>
         <button class="logout-btn" aria-label="登出" @click="logout">
@@ -60,6 +64,7 @@ async function logout() {
           {{ item.label }}
         </RouterLink>
       </nav>
+      </div>
 
       <RouterView />
     </div>
@@ -153,5 +158,17 @@ async function logout() {
 .menu-item.active {
   background-color: #fff;
   color: #000;
+}
+
+@media print {
+  .screen-only {
+    display: none;
+  }
+  /* 把外層黑底跟邊距清掉，不然列印頁面周圍會印出一圈黑色（印表機墨水浪費，
+     轉存 PDF 的話畫面也會怪怪的），子頁面自己的 .print-only 內容才是真正要印的東西 */
+  .admin-shell {
+    background: #fff;
+    padding: 0;
+  }
 }
 </style>

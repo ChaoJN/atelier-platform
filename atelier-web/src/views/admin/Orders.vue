@@ -222,6 +222,10 @@ onMounted(async () => {
 </script>
 
 <template>
+  <!-- 列印時只留 .print-only，這層整個隱藏掉——取代原本用 body * { visibility: hidden }
+       蓋全頁的寫法，那個寫法會讓「隱藏但還佔版面高度」的這層內容撐出一堆空白頁，
+       轉存 PDF 時尤其明顯（實體印表機因為紙張一張一張印，肉眼比較不會發現） -->
+  <div class="screen-only">
   <div class="search-container">
     <input v-model="keyword" type="text" placeholder="搜尋訂單編號、會員名稱、信箱、商品名稱、顏色或尺寸..." autocomplete="off" />
     <button type="button" class="search-info" aria-label="搜尋說明">
@@ -349,6 +353,7 @@ onMounted(async () => {
       </template>
     </tbody>
   </table>
+  </div>
   </div>
 
   <!-- 平常完全不顯示，只有 window.print() 觸發列印時，@media print 才會蓋掉整頁顯示這裡 -->
@@ -807,6 +812,14 @@ onMounted(async () => {
   display: none;
 }
 @media print {
+  /* 列印時把平常畫面整層藏起來，只留 .print-only 在正常文件流裡——
+     不要再用 visibility:hidden + position:absolute 疊加的寫法，
+     那樣「隱藏的畫面」還是會撐出原本的版面高度，造成轉存 PDF 時
+     多出一堆空白頁，而且 page-break-after 套在 position:absolute
+     的元素上分頁點也不可靠 */
+  .screen-only {
+    display: none;
+  }
   .print-only {
     display: block;
   }
@@ -874,26 +887,5 @@ onMounted(async () => {
   border-top: 1px dashed #999;
   padding-top: 10px;
   white-space: pre-wrap;
-}
-</style>
-
-<!-- 這幾條規則要動到 <body>，Vue scoped CSS 沒辦法正確處理「選擇器起頭是元件外面的元素」這種情況
-     （scoped 會把 data-v 屬性錯誤地加到 body 上，但真正的 <body> 標籤沒有這個屬性，規則就完全不會生效），
-     所以另外開一個沒有 scoped 的 style block 放這幾條全域規則 -->
-<style>
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  .print-only,
-  .print-only * {
-    visibility: visible;
-  }
-  .print-only {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-  }
 }
 </style>
