@@ -870,10 +870,17 @@ onMounted(async () => {
   border-spacing: 0;
   margin-bottom: 16px;
 }
+.slip-items tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
 .slip-items th,
 .slip-items td {
   border-right: 1px solid #999;
-  border-bottom: 1px solid #999;
+  /* 底線改用 box-shadow（而不是 border-bottom）——如果這一列剛好落在
+     換頁／紙張邊界上，border-bottom 常會被轉 PDF 的分頁裁切算圖吃掉
+     （已實測重現：邊界設 0 時底線會消失），box-shadow 不受這個影響 */
+  box-shadow: inset 0 -1px 0 #999;
   padding: 6px 10px;
   text-align: left;
 }

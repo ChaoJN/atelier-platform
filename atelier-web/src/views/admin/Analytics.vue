@@ -541,12 +541,20 @@ tr:hover td {
   font-size: 13px;
   color: #000;
 }
+.print-table tr {
+  /* 換頁時不要把一列從中間切成兩半 */
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
 .print-table th,
 .print-table td {
-  /* 每一條線只讓一個儲存格負責畫（右邊框、下邊框），避免 separate 模式下
-     相鄰儲存格各畫一次邊框，疊出變粗的雙線 */
+  /* 每一條線只讓一個儲存格負責畫（右邊框），避免 separate 模式下
+     相鄰儲存格各畫一次邊框，疊出變粗的雙線。
+     底線特別改用 box-shadow 而不是 border-bottom——如果剛好換頁換到這一列，
+     border-bottom 常會被轉 PDF 的分頁裁切算圖吃掉（已實測重現：邊界設 0 時
+     換頁前最後一列底框會消失，只有 box-shadow 這個畫法不受影響） */
   border-right: 1px solid #999;
-  border-bottom: 1px solid #999;
+  box-shadow: inset 0 -1px 0 #999;
   padding: 6px 10px;
   text-align: left;
   color: #000;
