@@ -16,7 +16,7 @@ const { alert } = useModal()
 
 type ShippingMethod = 'store-to-store' | 'hand-deliver'
 
-const MEETING_OPTIONS = ['週日小班 10/18（日）', '週一小班 10/19（一）', '週一小班 10/26（一）']
+const MEETING_OPTIONS = ['週日小班 12/6（日）', '週一小班 12/7（一）', '週一小班 12/14（一）']
 
 const name = ref('')
 const phone = ref('')
@@ -153,7 +153,7 @@ async function submitOrder() {
     cart.items.splice(0, cart.items.length)
     router.push('/product')
   } catch (err) {
-    const error = err as Error & { status?: number }
+    const error = err as Error & { status?: number; data?: unknown }
     if (error.status === 401) {
       localStorage.setItem(
         'checkout_draft',
@@ -171,6 +171,21 @@ async function submitOrder() {
       localStorage.setItem('redirect_after_login', '/checkout')
       await alert('請先登入')
       router.push('/login')
+      return
+    }
+    if (error.status === 409) {
+      const invalidItems =
+        (error.data as { invalidItems?: { productName: string; color: string | null; size: string | null }[] })
+          ?.invalidItems ?? []
+      const labels = invalidItems.map((item) => {
+        const spec = variantLabel(item.color, item.size)
+        return spec ? `${item.productName}（${spec}）` : item.productName
+      })
+      await alert(
+        labels.length > 0
+          ? `以下商品已下架或規格不可購買，請回購物車刪除：\n${labels.join('\n')}`
+          : error.message
+      )
       return
     }
     await alert(error.message)
@@ -281,7 +296,7 @@ onMounted(async () => {
       </div>
       <div v-else class="delivery-detail">
         <div class="form-group">
-          <label>與雨停相約</label>
+          <label>與雨停相約 <span class="text-color">*面交選項僅開放給上課同學，還請大家見諒，謝謝理解！</span></label>
           <div ref="meetingEl" class="meeting-options">
             <label
               v-for="opt in MEETING_OPTIONS"
@@ -389,6 +404,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.text-color {
+  color: #bf7a4a;
+}
 .checkout-header {
   position: sticky;
   top: 0;

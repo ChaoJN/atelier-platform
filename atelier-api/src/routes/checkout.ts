@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { Bindings } from '../types/bindings'
+import type { OrderItem } from '@atelier/types'
 import { getSupabase } from '../db/supabase'
 import { verifyUser, type Variables } from '../middleware/auth'
 import { sendOrderMail } from '../services/email'
@@ -17,6 +18,44 @@ function generateOrderNo() {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const random = Math.random().toString(36).slice(2, 8).toUpperCase() // toString(36) 轉成 36 進位
   return `ORD-${dateStr}-${random}`
+}
+
+type ProductAvailability = {
+  id: number
+  is_active: boolean
+  product_variants?: { color_code: string | null; size: string | null; is_available: boolean }[]
+}
+
+// 純邏輯、不碰資料庫，方便單獨測試：給定「商品目前的上架/庫存狀態」跟購物車品項，
+// 判斷哪些品項已經不能買了（商品整個下架，或該顏色/尺寸規格已不可購買／不存在）
+export function filterInvalidItems(products: ProductAvailability[], orderItems: OrderItem[]) {
+  const productMap = new Map(products.map((p) => [p.id, p]))
+
+  return orderItems.filter((item) => {
+    const product = productMap.get(item.productId)
+    if (!product || !product.is_active) return true
+    const variant = product.product_variants?.find(
+      (v) => v.color_code === item.colorCode && v.size === item.size
+    )
+    return !variant || !variant.is_available
+  })
+}
+
+// 前端結帳頁進頁時也會做一次同樣的檢查，但那只在頁面載入當下跑一次，使用者可能
+// 在結帳頁停留很久、或直接繞過前端打這支 API，所以後端下單當下一定要再驗一次，
+// 只要購物車裡有任何一項商品已下架或該顏色/尺寸已不可購買，整張訂單直接拒絕
+export async function findInvalidItems(env: Bindings, orderItems: OrderItem[]) {
+  const productIds = [...new Set(orderItems.map((item) => item.productId))]
+  if (productIds.length === 0) return []
+
+  const { data: products, error } = await getSupabase(env)
+    .from('products')
+    .select('id, is_active, product_variants(color_code, size, is_available)')
+    .in('id', productIds)
+
+  if (error) throw error
+
+  return filterInvalidItems(products, orderItems)
 }
 
 // POST /api/orders - 建立訂單（需登入）
@@ -37,6 +76,22 @@ checkout.post('/', async (c) => {
       delivery_info,
       remark,
     } = await c.req.json()
+
+    const invalidItems = await findInvalidItems(c.env, order_items)
+    if (invalidItems.length > 0) {
+      return c.json(
+        {
+          success: false,
+          error: '購物車內有商品已下架或該規格無法購買，請重新確認購物車',
+          invalidItems: invalidItems.map((item) => ({
+            productName: item.productName,
+            color: item.color,
+            size: item.size,
+          })),
+        },
+        409
+      )
+    }
 
     const { data, error } = await getSupabase(c.env)
       .from('orders')

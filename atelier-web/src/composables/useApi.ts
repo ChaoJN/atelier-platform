@@ -16,8 +16,9 @@ async function request<T>(path: string, options: RequestInit, tokenKey: string):
 
   const data = await res.json()
   if (!res.ok) {
-    const error = new Error(data.error ?? '請求失敗') as Error & { status?: number }
+    const error = new Error(data.error ?? '請求失敗') as Error & { status?: number; data?: unknown }
     error.status = res.status
+    error.data = data // 保留完整回應內容，讓呼叫端在需要時可以取用額外欄位（例如 invalidItems）
     throw error
   }
   return data as T
