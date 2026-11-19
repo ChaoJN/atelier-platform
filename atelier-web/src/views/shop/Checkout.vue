@@ -16,7 +16,7 @@ const { alert } = useModal()
 
 type ShippingMethod = 'store-to-store' | 'hand-deliver'
 
-const MEETING_OPTIONS = ['週日小班 12/6（日）', '週一小班 12/7（一）', '週一小班 12/14（一）']
+const MEETING_OPTIONS = ['週日小班 12/20（日）', '週一小班 12/14（一）', '週一小班 12/21（一）']
 
 const name = ref('')
 const phone = ref('')
