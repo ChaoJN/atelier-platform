@@ -34,6 +34,7 @@ export interface Order {
   delivery_method: string
   delivery_info?: unknown
   remark?: string | null
+  admin_remark?: string | null // 店家備註（主要用於退換貨說明），下單時沒有這欄位，是訂單成立後由後台補填，消費者查詢訂單時看得到
   status: OrderStatus
   status_history: OrderStatusEvent[]
   created_at: string

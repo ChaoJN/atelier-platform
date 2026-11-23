@@ -84,6 +84,21 @@ admin.patch('/orders/:id/status', async (c) => {
   return c.json({ success: true })
 })
 
+// PATCH /api/admin/orders/:id/admin-remark - 更新店家備註（主要用於退換貨說明；
+// 消費者下單時沒有這個欄位，是訂單成立後由後台補填，查詢訂單時消費者看得到）
+admin.patch('/orders/:id/admin-remark', async (c) => {
+  const { id } = c.req.param()
+  const { admin_remark } = await c.req.json()
+
+  const { error } = await getSupabase(c.env)
+    .from('orders')
+    .update({ admin_remark: admin_remark || null })
+    .eq('id', id)
+
+  if (error) return c.json({ error: error.message }, 500)
+  return c.json({ success: true })
+})
+
 // GET /api/admin/dashboard-stats - 總覽數據
 admin.get('/dashboard-stats', async (c) => {
   try {

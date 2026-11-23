@@ -78,7 +78,7 @@ const filteredOrders = computed(() => {
     const orderNoUpper = o.order_no.toUpperCase()
     if (terms.every((t) => orderNoUpper.includes(t))) return true
 
-    const memberHaystack = [o.member_name, o.member_email].filter(Boolean).join(' ').toUpperCase()
+    const memberHaystack = [o.member_name, o.member_email, o.recipient_name].filter(Boolean).join(' ').toUpperCase()
     if (terms.every((t) => memberHaystack.includes(t))) return true
 
     // 每個詞必須同時出現在「同一個商品項目」的名稱＋顏色＋尺寸組合裡，
@@ -89,6 +89,11 @@ const filteredOrders = computed(() => {
     })
   })
 })
+
+// 匯出 CSV、產生訂單明細這兩個「要出貨/對貨」的功能，不管畫面上目前選哪個狀態篩選，
+// 已取消的訂單一律不能混進去——表格本身還是要能照常篩選查看已取消訂單，所以另外拉一份，
+// 不直接改 filteredOrders
+const printableOrders = computed(() => filteredOrders.value.filter((o) => o.status !== 'cancelled'))
 
 function statusFor(status: OrderStatus) {
   return STATUS_MAP[status] ?? { label: status, cls: '' }
@@ -143,9 +148,18 @@ function csvCellPlain(value: string) {
   return `"${value.replace(/"/g, '""')}"`
 }
 
+// 消費者備註（下單時填的）、店家備註（後台事後補的，消費者查詢訂單時也看得到，
+// 主要用在退換貨溝通）放同一欄，對貨單才不用切兩欄看
+function remarksCell(o: AdminOrder) {
+  const parts: string[] = []
+  if (o.remark) parts.push(`消費者備註：${o.remark}`)
+  if (o.admin_remark) parts.push(`店家備註：${o.admin_remark}`)
+  return parts.join('\n')
+}
+
 function exportCsv() {
   const headers = ['會員名稱', '會員信箱', '訂單編號', '商品明細', '收件人', '收件人電話', '寄送資訊', '備註']
-  const rows = filteredOrders.value.map((o) => [
+  const rows = printableOrders.value.map((o) => [
     csvCell(o.member_name ?? ''),
     csvCell(o.member_email ?? ''),
     csvCell(o.order_no),
@@ -153,7 +167,7 @@ function exportCsv() {
     csvCell(o.recipient_name ?? ''),
     csvCell(o.recipient_phone ?? ''),
     csvCell(deliveryDetail(o)),
-    csvCellPlain(o.remark ?? ''),
+    csvCellPlain(remarksCell(o)),
   ])
 
   const csvText = [headers.map(csvCell), ...rows].map((row) => row.join(',')).join('\r\n')
@@ -174,7 +188,7 @@ function exportCsv() {
 // 平常不顯示，只有在列印時（@media print）才蓋掉整個畫面顯示出來，
 // 不用額外套件產生真的 PDF 檔，使用者按下列印還能先用瀏覽器原生預覽看一次排版
 function printPackingSlips() {
-  if (filteredOrders.value.length === 0) return
+  if (printableOrders.value.length === 0) return
   window.print()
 }
 
@@ -199,6 +213,24 @@ async function updateStatus(order: AdminOrder, event: Event) {
       return
     }
     await alert('狀態更新失敗，請再試一次。')
+  }
+}
+
+async function saveAdminRemark(order: AdminOrder, event: Event) {
+  const value = (event.target as HTMLTextAreaElement).value
+  try {
+    await adminApiFetch(`/api/admin/orders/${order.id}/admin-remark`, {
+      method: 'PATCH',
+      body: JSON.stringify({ admin_remark: value.trim() || null }),
+    })
+    order.admin_remark = value.trim() || null
+  } catch (err) {
+    const httpStatus = (err as Error & { status?: number }).status
+    if (httpStatus === 401 || httpStatus === 403) {
+      await handleAuthError()
+      return
+    }
+    await alert('備註儲存失敗，請再試一次。')
   }
 }
 
@@ -227,7 +259,7 @@ onMounted(async () => {
        轉存 PDF 時尤其明顯（實體印表機因為紙張一張一張印，肉眼比較不會發現） -->
   <div class="screen-only">
   <div class="search-container">
-    <input v-model="keyword" type="text" placeholder="搜尋訂單編號、會員名稱、信箱、商品名稱、顏色或尺寸..." autocomplete="off" />
+    <input v-model="keyword" type="text" placeholder="搜尋訂單編號、會員名稱、信箱、收件人、商品名稱、顏色或尺寸..." autocomplete="off" />
     <button type="button" class="search-info" aria-label="搜尋說明">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
@@ -235,7 +267,7 @@ onMounted(async () => {
         <line x1="12" y1="8" x2="12.01" y2="8"></line>
       </svg>
       <div class="search-tooltip">
-        可輸入多個關鍵字，用空白分隔（例如「葫蘆褲 BLACK M」），每個詞都要同時符合同一項商品的名稱、顏色或尺寸才會顯示；也可以直接搜訂單編號、會員名稱或信箱。
+        可輸入多個關鍵字，用空白分隔（例如「葫蘆褲 BLACK M」），每個詞都要同時符合同一項商品的名稱、顏色或尺寸才會顯示；也可以直接搜訂單編號、會員名稱、信箱或收件人姓名。
       </div>
     </button>
   </div>
@@ -260,8 +292,8 @@ onMounted(async () => {
       {{ opt.label }}
     </button>
     <div class="export-actions">
-      <button class="export-btn" :disabled="filteredOrders.length === 0" @click="exportCsv">匯出 CSV</button>
-      <button class="export-btn" :disabled="filteredOrders.length === 0" @click="printPackingSlips">產生訂單明細</button>
+      <button class="export-btn" :disabled="printableOrders.length === 0" @click="exportCsv">匯出 CSV</button>
+      <button class="export-btn" :disabled="printableOrders.length === 0" @click="printPackingSlips">產生訂單明細</button>
     </div>
   </div>
 
@@ -348,6 +380,15 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
+            <div class="admin-remark-block">
+              <div class="detail-section-title">店家備註</div>
+              <textarea
+                class="admin-remark-input"
+                placeholder="主要用於退換貨等補充說明，消費者查詢訂單時也看得到，請勿填寫內部專用資訊"
+                :value="order.admin_remark ?? ''"
+                @change="saveAdminRemark(order, $event)"
+              ></textarea>
+            </div>
           </td>
         </tr>
       </template>
@@ -358,7 +399,7 @@ onMounted(async () => {
 
   <!-- 平常完全不顯示，只有 window.print() 觸發列印時，@media print 才會蓋掉整頁顯示這裡 -->
   <div class="print-only">
-    <div v-for="order in filteredOrders" :key="`print-${order.id}`" class="packing-slip">
+    <div v-for="order in printableOrders" :key="`print-${order.id}`" class="packing-slip">
       <div class="slip-header">
         <div class="slip-brand">Rainstopha Select</div>
         <div class="slip-order-no">訂單編號：{{ order.order_no }}</div>
@@ -400,7 +441,8 @@ onMounted(async () => {
         <div class="slip-total-amount">實付金額：NT$ {{ order.pay_amount.toLocaleString() }}</div>
       </div>
 
-      <div v-if="order.remark" class="slip-remark">備註：{{ order.remark }}</div>
+      <div v-if="order.remark" class="slip-remark">消費者備註：{{ order.remark }}</div>
+      <div v-if="order.admin_remark" class="slip-remark">店家備註：{{ order.admin_remark }}</div>
     </div>
   </div>
 </template>
@@ -731,6 +773,28 @@ onMounted(async () => {
   .detail-inner {
     grid-template-columns: 1fr;
   }
+}
+.admin-remark-block {
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px dashed #333;
+}
+.admin-remark-input {
+  width: 100%;
+  min-height: 60px;
+  margin-top: 8px;
+  background: #1e1e1e;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.admin-remark-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 .detail-section-title {
   font-size: 11px;

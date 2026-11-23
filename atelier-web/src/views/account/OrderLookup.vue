@@ -241,6 +241,11 @@ onMounted(() => {
             <div class="detail-label">備註</div>
             <div class="remark-text">{{ order.remark }}</div>
           </div>
+
+          <div v-if="order.admin_remark" class="detail-section">
+            <div class="detail-label">店家備註</div>
+            <div class="remark-text">{{ order.admin_remark }}</div>
+          </div>
         </div>
       </div>
     </template>
